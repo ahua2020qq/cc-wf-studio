@@ -724,16 +724,13 @@ export const zhTWWebviewTranslations: WebviewTranslationKeys = {
   'slack.import.connectionRequired.connectButton': '連接到 Slack',
 
   // Codebase Index (Issue #265)
-  'codebaseIndex.building': '正在建立索引...',
-  'codebaseIndex.ready': '索引就緒',
-  'codebaseIndex.notBuilt': '索引未建立',
+  'codebaseIndex.building': '建立中',
+  'codebaseIndex.ready': '已就緒',
+  'codebaseIndex.notBuilt': '未建立',
   'codebaseIndex.statusBadge': '程式碼庫索引狀態',
   'codebaseIndex.rebuild': '重建索引',
   'codebaseIndex.build': '建立索引',
   'codebaseIndex.clear': '清除索引',
-  'codebaseIndex.documents': '文件',
-  'codebaseIndex.files': '檔案',
-  'codebaseIndex.noIndex': '尚未建立索引',
   'codebaseIndex.cancel': '取消',
   'codebaseIndex.button': '程式碼庫參照(β)',
   'codebaseIndex.enableReference': '啟用程式碼庫參照',
@@ -742,7 +739,6 @@ export const zhTWWebviewTranslations: WebviewTranslationKeys = {
     '啟用後，AI回應將包含程式碼庫中的相關程式碼片段。您也可以使用@codebase指令進行明確搜尋。',
   'codebaseIndex.settings.description2':
     '目前使用關鍵詞搜尋（BM25）實現，未來計劃升級為使用向量資料庫的語義搜尋。',
-  'codebaseIndex.settings.status': '索引狀態',
   'codebaseIndex.settings.disabled': '程式碼庫參照已停用',
 
   // Codebase Reference (Issue #265)
