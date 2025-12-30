@@ -1,3 +1,9 @@
+## [3.10.1](https://github.com/breaking-brake/cc-wf-studio/compare/v3.10.0...v3.10.1) (2025-12-30)
+
+### Improvements
+
+* add delete button to edge connections ([#334](https://github.com/breaking-brake/cc-wf-studio/issues/334)) ([c04c015](https://github.com/breaking-brake/cc-wf-studio/commit/c04c01542fa4fdabc89551080cf59c313bf78e17)), closes [#331](https://github.com/breaking-brake/cc-wf-studio/issues/331)
+
 ## [3.10.0](https://github.com/breaking-brake/cc-wf-studio/compare/v3.9.1...v3.10.0) (2025-12-29)
 
 ### Features
