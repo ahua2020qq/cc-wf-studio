@@ -1,3 +1,9 @@
+## [3.11.0](https://github.com/breaking-brake/cc-wf-studio/compare/v3.10.2...v3.11.0) (2026-01-01)
+
+### Features
+
+* add Edit in VSCode Editor functionality ([#341](https://github.com/breaking-brake/cc-wf-studio/issues/341)) ([e61bc51](https://github.com/breaking-brake/cc-wf-studio/commit/e61bc51de528aa3322a24ef3391c1061bdb8bd0c))
+
 ## [3.10.2](https://github.com/breaking-brake/cc-wf-studio/compare/v3.10.1...v3.10.2) (2025-12-30)
 
 ### Improvements
