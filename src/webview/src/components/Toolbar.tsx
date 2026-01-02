@@ -9,6 +9,7 @@ import { FileDown, Play, Save, Sparkles, SquareSlash } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIsCompactMode } from '../hooks/useWindowWidth';
+import { useIsOfflineMode } from '../hooks/useOfflineConfig';
 import { useTranslation } from '../i18n/i18n-context';
 import { vscode } from '../main';
 import {
@@ -46,6 +47,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
   const { t, locale } = useTranslation();
   const isCompact = useIsCompactMode();
+  const isOfflineMode = useIsOfflineMode();
   const {
     nodes,
     edges,
@@ -621,6 +623,61 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             backgroundColor: 'var(--vscode-panel-border)',
           }}
         />
+
+        {/* Offline Mode Indicator */}
+        {isOfflineMode && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '2px',
+              marginLeft: '8px',
+            }}
+          >
+            {/* Group Label */}
+            <span
+              style={{
+                fontSize: '10px',
+                color: 'var(--vscode-descriptionForeground)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Mode
+            </span>
+
+            {/* Offline Badge */}
+            <div
+              style={{
+                padding: '2px 6px',
+                backgroundColor: 'var(--vscode-badge-background)',
+                color: 'var(--vscode-badge-foreground)',
+                borderRadius: '2px',
+                fontSize: '11px',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title="[yougao 定制版] 离线模式 | 数据主权优先 · 本地运行"
+            >
+              <span style={{ fontSize: '10px' }}>🔒</span>
+              <span>离线模式</span>
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        {isOfflineMode && (
+          <div
+            style={{
+              width: '1px',
+              height: '32px',
+              backgroundColor: 'var(--vscode-panel-border)',
+            }}
+          />
+        )}
 
         {/* Other Group */}
         <div

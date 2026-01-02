@@ -180,6 +180,12 @@ export class SlackApiService {
     onlyMember = true
   ): Promise<SlackChannel[]> {
     try {
+      // [yougao 改造] 离线模式拦截云端请求
+      if (offlineConfig.disableCloudApi) {
+        console.warn('[yougao 离线模式] 云端请求已拦截: Slack 获取频道列表');
+        throw new Error('[离线模式] 已禁用云端接口，无法获取 Slack 频道列表');
+      }
+
       const client = await this.ensureUserClient(workspaceId);
 
       // Build channel types filter
@@ -243,6 +249,12 @@ export class SlackApiService {
    * @returns File upload result
    */
   async uploadWorkflowFile(options: WorkflowUploadOptions): Promise<FileUploadResult> {
+    // [yougao 改造] 离线模式拦截云端请求
+    if (offlineConfig.disableCloudApi) {
+      console.warn('[yougao 离线模式] 云端请求已拦截: Slack 上传工作流文件');
+      throw new Error('[离线模式] 已禁用云端接口，无法上传工作流文件到 Slack');
+    }
+
     const client = await this.ensureUserClient(options.workspaceId);
 
     // Upload file using files.uploadV2
@@ -312,6 +324,12 @@ export class SlackApiService {
     channelId: string,
     block: WorkflowMessageBlock
   ): Promise<MessagePostResult> {
+    // [yougao 改造] 离线模式拦截云端请求
+    if (offlineConfig.disableCloudApi) {
+      console.warn('[yougao 离线模式] 云端请求已拦截: Slack 发布工作流消息');
+      throw new Error('[离线模式] 已禁用云端接口，无法发布工作流消息到 Slack');
+    }
+
     const client = await this.ensureUserClient(workspaceId);
 
     // Build Block Kit blocks
@@ -352,6 +370,12 @@ export class SlackApiService {
    */
   async searchWorkflows(options: WorkflowSearchOptions): Promise<SearchResult[]> {
     try {
+      // [yougao 改造] 离线模式拦截云端请求
+      if (offlineConfig.disableCloudApi) {
+        console.warn('[yougao 离线模式] 云端请求已拦截: Slack 搜索工作流');
+        throw new Error('[离线模式] 已禁用云端接口，无法搜索 Slack 工作流');
+      }
+
       const client = await this.ensureUserClient(options.workspaceId);
 
       // Build search query
@@ -408,6 +432,12 @@ export class SlackApiService {
    */
   async validateToken(workspaceId: string): Promise<boolean> {
     try {
+      // [yougao 改造] 离线模式拦截云端请求
+      if (offlineConfig.disableCloudApi) {
+        console.warn('[yougao 离线模式] 云端请求已拦截: Slack 验证令牌');
+        return false; // 离线模式下令牌验证失败
+      }
+
       const client = await this.ensureUserClient(workspaceId);
       const response = await client.auth.test();
       return response.ok === true;
@@ -441,6 +471,12 @@ export class SlackApiService {
     messageTs: string,
     block: WorkflowMessageBlock
   ): Promise<void> {
+    // [yougao 改造] 离线模式拦截云端请求
+    if (offlineConfig.disableCloudApi) {
+      console.warn('[yougao 离线模式] 云端请求已拦截: Slack 更新工作流消息');
+      throw new Error('[离线模式] 已禁用云端接口，无法更新 Slack 工作流消息');
+    }
+
     const client = await this.ensureUserClient(workspaceId);
 
     // Build Block Kit blocks

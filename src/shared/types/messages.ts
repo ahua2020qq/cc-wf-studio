@@ -262,7 +262,8 @@ export interface RefinementFailedPayload {
       | 'ITERATION_LIMIT_REACHED'
       | 'CANCELLED'
       | 'PROHIBITED_NODE_TYPE'
-      | 'UNKNOWN_ERROR';
+      | 'UNKNOWN_ERROR'
+      | 'LOCAL_MODEL_ERROR';
     /** Human-readable error message */
     message: string;
     /** Optional: detailed error information */
@@ -640,6 +641,14 @@ export interface GenerateSlackDescriptionPayload {
 }
 
 /**
+ * Cancel Slack description generation payload
+ */
+export interface CancelSlackDescriptionPayload {
+  /** Request ID of the generation to cancel */
+  targetRequestId: string;
+}
+
+/**
  * Slack description generation success payload
  */
 export interface SlackDescriptionSuccessPayload {
@@ -656,7 +665,7 @@ export interface SlackDescriptionSuccessPayload {
  */
 export interface SlackDescriptionFailedPayload {
   error: {
-    code: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'CANCELLED' | 'UNKNOWN_ERROR';
+    code: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'CANCELLED' | 'UNKNOWN_ERROR' | 'LOCAL_MODEL_ERROR';
     message: string;
     details?: string;
   };
@@ -681,6 +690,14 @@ export interface GenerateWorkflowNamePayload {
 }
 
 /**
+ * Cancel workflow name generation payload
+ */
+export interface CancelWorkflowNamePayload {
+  /** Request ID of the generation to cancel */
+  targetRequestId: string;
+}
+
+/**
  * Workflow name generation success payload
  */
 export interface WorkflowNameSuccessPayload {
@@ -697,7 +714,7 @@ export interface WorkflowNameSuccessPayload {
  */
 export interface WorkflowNameFailedPayload {
   error: {
-    code: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'CANCELLED' | 'UNKNOWN_ERROR';
+    code: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'CANCELLED' | 'UNKNOWN_ERROR' | 'LOCAL_MODEL_ERROR';
     message: string;
     details?: string;
   };
@@ -1111,7 +1128,9 @@ export type WebviewMessage =
   | Message<void, 'GET_LAST_SHARED_CHANNEL'>
   | Message<SetLastSharedChannelPayload, 'SET_LAST_SHARED_CHANNEL'>
   | Message<GenerateSlackDescriptionPayload, 'GENERATE_SLACK_DESCRIPTION'>
+  | Message<CancelSlackDescriptionPayload, 'CANCEL_SLACK_DESCRIPTION'>
   | Message<GenerateWorkflowNamePayload, 'GENERATE_WORKFLOW_NAME'>
+  | Message<CancelWorkflowNamePayload, 'CANCEL_WORKFLOW_NAME'>
   | Message<void, 'OPEN_FILE_PICKER'>
   | Message<RunAsSlashCommandPayload, 'RUN_AS_SLASH_COMMAND'>
   | Message<OpenInEditorPayload, 'OPEN_IN_EDITOR'>;

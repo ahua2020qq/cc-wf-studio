@@ -22,6 +22,7 @@ import type {
 } from '../../shared/types/workflow-definition';
 import { translate } from '../i18n/i18n-service';
 import type { FileService } from './file-service';
+import offlineConfig from '../../config/offline.config.js';
 
 /**
  * Check if any export files already exist
@@ -35,10 +36,9 @@ export async function checkExistingFiles(
   fileService: FileService
 ): Promise<string[]> {
   const existingFiles: string[] = [];
-  const workspacePath = fileService.getWorkspacePath();
 
-  const agentsDir = path.join(workspacePath, '.claude', 'agents');
-  const commandsDir = path.join(workspacePath, '.claude', 'commands');
+  const agentsDir = getExportDirectory(fileService, 'agents');
+  const commandsDir = getExportDirectory(fileService, 'commands');
 
   // Check Sub-Agent files
   const subAgentNodes = workflow.nodes.filter((node) => node.type === 'subAgent') as SubAgentNode[];
@@ -71,7 +71,29 @@ export async function checkExistingFiles(
     existingFiles.push(commandFilePath);
   }
 
+  // [yougao 改造] 记录检查结果
+  if (existingFiles.length > 0) {
+    console.log(`[yougao] 发现 ${existingFiles.length} 个已存在的导出文件 (离线模式: ${offlineConfig.isOffline})`);
+  }
+
   return existingFiles;
+}
+
+/**
+ * [yougao 改造] 获取导出目录路径
+ */
+function getExportDirectory(fileService: FileService, subDirectory: string): string {
+  if (offlineConfig.isOffline) {
+    // 离线模式：导出到本地存储目录下的 .claude 子目录
+    const offlineDir = fileService.getOfflineWorkflowsDirectory();
+    const exportDir = path.join(path.dirname(offlineDir), '.claude', subDirectory);
+    console.log(`[yougao 离线模式] 导出目录: ${exportDir}`);
+    return exportDir;
+  }
+  
+  // 在线模式：导出到工作区目录
+  const workspacePath = fileService.getWorkspacePath();
+  return path.join(workspacePath, '.claude', subDirectory);
 }
 
 /**
@@ -86,13 +108,13 @@ export async function exportWorkflow(
   fileService: FileService
 ): Promise<string[]> {
   const exportedFiles: string[] = [];
-  const workspacePath = fileService.getWorkspacePath();
 
   // Create .claude directories if they don't exist
-  const agentsDir = path.join(workspacePath, '.claude', 'agents');
-  const commandsDir = path.join(workspacePath, '.claude', 'commands');
+  const agentsDir = getExportDirectory(fileService, 'agents');
+  const commandsDir = getExportDirectory(fileService, 'commands');
 
-  await fileService.createDirectory(path.join(workspacePath, '.claude'));
+  // 确保目录存在
+  await fileService.createDirectory(path.dirname(agentsDir));
   await fileService.createDirectory(agentsDir);
   await fileService.createDirectory(commandsDir);
 
@@ -303,10 +325,15 @@ function generateSubAgentFlowAgentFile(
   // Create a pseudo-Workflow object to reuse generateWorkflowExecutionLogic
   // This ensures SubAgentFlow export format matches SlashCommand format exactly
   const pseudoWorkflow: Workflow = {
+    id: subAgentFlow.id,
     name: subAgentFlow.name,
     description: subAgentFlow.description,
+    version: '1.0.0',
+    schemaVersion: '1.2.0',
     nodes: subAgentFlow.nodes,
     connections: subAgentFlow.connections,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   // Generate execution logic (same format as SlashCommand)

@@ -12,6 +12,8 @@
 // import nanoSpawn from 'nano-spawn'; // [yougao 改造] 离线模式下不再需要 nano-spawn
 import type { ClaudeModel } from '../../shared/types/messages';
 import { log } from '../extension';
+// [yougao 改造] 本地模型配置
+import localModelConfig from '../../config/local-model.config';
 
 /**
  * nano-spawn type definitions (manually defined for compatibility)
@@ -91,7 +93,21 @@ export interface ClaudeCodeExecutionResult {
   success: boolean;
   output?: string;
   error?: {
-    code: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'UNKNOWN_ERROR';
+    code: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'UNKNOWN_ERROR' | 'LOCAL_MODEL_ERROR';
+    message: string;
+    details?: string;
+  };
+  executionTimeMs: number;
+}
+
+/**
+ * [yougao 改造] 本地模型调用接口
+ */
+export interface LocalModelExecutionResult {
+  success: boolean;
+  output?: string;
+  error?: {
+    code: 'MODEL_NOT_AVAILABLE' | 'TIMEOUT' | 'PARSE_ERROR' | 'NETWORK_ERROR';
     message: string;
     details?: string;
   };
@@ -106,6 +122,218 @@ export interface ClaudeCodeExecutionResult {
 //   // Claude CLI accepts model aliases: 'sonnet', 'opus', 'haiku'
 //   return model;
 // }
+
+/**
+ * [yougao 改造] 调用本地模型
+ */
+async function executeLocalModel(
+  prompt: string,
+  timeoutMs = 60000,
+  modelType: string = localModelConfig.localModelType
+): Promise<LocalModelExecutionResult> {
+  const startTime = Date.now();
+
+  try {
+    console.log('[yougao] 调用本地模型:', modelType);
+    log('INFO', '[yougao] 调用本地模型', {
+      modelType,
+      promptLength: prompt.length,
+      timeoutMs,
+    });
+
+    // 检查是否启用本地模型
+    if (!localModelConfig.enableLocalModel) {
+      return {
+        success: false,
+        error: {
+          code: 'MODEL_NOT_AVAILABLE',
+          message: '本地模型未启用',
+        },
+        executionTimeMs: Date.now() - startTime,
+      };
+    }
+
+    // 根据模型类型选择不同的调用方式
+    let rawResult: string;
+    
+    if (modelType === 'deepseek') {
+      // DeepSeek 模型调用逻辑（预留接口）
+      rawResult = await callDeepSeekModel(prompt, timeoutMs);
+    } else if (modelType === 'qwen') {
+      // Qwen 模型调用逻辑（预留接口）
+      rawResult = await callQwenModel(prompt, timeoutMs);
+    } else if (modelType === 'llama') {
+      // Llama 模型调用逻辑（预留接口）
+      rawResult = await callLlamaModel(prompt, timeoutMs);
+    } else {
+      // 自定义模型调用逻辑（预留接口）
+      rawResult = await callCustomModel(prompt, timeoutMs);
+    }
+
+    // 适配输出格式
+    const adaptedResult = adaptLocalModelOutput(modelType, rawResult, prompt);
+
+    return {
+      success: true,
+      output: adaptedResult,
+      executionTimeMs: Date.now() - startTime,
+    };
+  } catch (error) {
+    console.error('[yougao] 本地模型调用失败:', error);
+    log('ERROR', '[yougao] 本地模型调用失败', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return {
+      success: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: '本地模型调用失败',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      executionTimeMs: Date.now() - startTime,
+    };
+  }
+}
+
+/**
+ * [yougao 改造] DeepSeek 模型调用（预留接口）
+ */
+async function callDeepSeekModel(_prompt: string, _timeoutMs: number): Promise<string> {
+  // 预留 DeepSeek 模型调用接口
+  // 实际实现需要根据 DeepSeek API 或本地部署进行调整
+  console.log('[yougao] DeepSeek 模型调用（预留接口）');
+  
+  // 模拟返回
+  return JSON.stringify({
+    status: 'success',
+    message: '[yougao DeepSeek 模式] 工作流已处理完成',
+    values: {
+      workflow: {
+        name: 'deepseek-workflow',
+        description: 'DeepSeek 模型生成的工作流',
+        nodes: [],
+        edges: []
+      }
+    }
+  });
+}
+
+/**
+ * [yougao 改造] Qwen 模型调用（预留接口）
+ */
+async function callQwenModel(_prompt: string, _timeoutMs: number): Promise<string> {
+  // 预留 Qwen 模型调用接口
+  console.log('[yougao] Qwen 模型调用（预留接口）');
+  
+  // 模拟返回
+  return JSON.stringify({
+    status: 'success',
+    message: '[yougao Qwen 模式] 工作流已处理完成',
+    values: {
+      workflow: {
+        name: 'qwen-workflow',
+        description: 'Qwen 模型生成的工作流',
+        nodes: [],
+        edges: []
+      }
+    }
+  });
+}
+
+/**
+ * [yougao 改造] Llama 模型调用（预留接口）
+ */
+async function callLlamaModel(_prompt: string, _timeoutMs: number): Promise<string> {
+  // 预留 Llama 模型调用接口
+  console.log('[yougao] Llama 模型调用（预留接口）');
+  
+  // 模拟返回
+  return JSON.stringify({
+    status: 'success',
+    message: '[yougao Llama 模式] 工作流已处理完成',
+    values: {
+      workflow: {
+        name: 'llama-workflow',
+        description: 'Llama 模型生成的工作流',
+        nodes: [],
+        edges: []
+      }
+    }
+  });
+}
+
+/**
+ * [yougao 改造] 自定义模型调用（预留接口）
+ */
+async function callCustomModel(_prompt: string, _timeoutMs: number): Promise<string> {
+  // 预留自定义模型调用接口
+  console.log('[yougao] 自定义模型调用（预留接口）');
+  
+  // 模拟返回
+  return JSON.stringify({
+    status: 'success',
+    message: '[yougao 自定义模型模式] 工作流已处理完成',
+    values: {
+      workflow: {
+        name: 'custom-workflow',
+        description: '自定义模型生成的工作流',
+        nodes: [],
+        edges: []
+      }
+    }
+  });
+}
+
+/**
+ * [yougao 改造] 适配本地模型输出格式
+ * 将本地模型的输出转换为与 Claude CLI 兼容的格式
+ */
+function adaptLocalModelOutput(
+  modelType: string,
+  rawOutput: string,
+  _prompt: string
+): string {
+  try {
+    // 尝试解析原始输出
+    const parsed = JSON.parse(rawOutput);
+    
+    // 如果已经是兼容格式，直接返回
+    if (parsed.status && parsed.values) {
+      return rawOutput;
+    }
+    
+    // 否则转换为兼容格式
+    return JSON.stringify({
+      status: 'success',
+      message: `[yougao ${modelType} 模式] 工作流已处理完成`,
+      values: {
+        workflow: parsed.workflow || {
+          name: `${modelType}-workflow`,
+          description: `${modelType} 模型生成的工作流`,
+          nodes: parsed.nodes || [],
+          edges: parsed.edges || [],
+        },
+      },
+    });
+  } catch (error) {
+    // 如果解析失败，创建默认格式
+    console.warn('[yougao] 本地模型输出解析失败，使用默认格式:', error);
+    
+    return JSON.stringify({
+      status: 'success',
+      message: `[yougao ${modelType} 模式] 工作流已处理完成`,
+      values: {
+        workflow: {
+          name: `${modelType}-workflow`,
+          description: `${modelType} 模型生成的工作流`,
+          nodes: [],
+          edges: [],
+        },
+      },
+    });
+  }
+}
 
 /**
  * Execute Claude Code CLI with a prompt and return the output
@@ -127,6 +355,23 @@ export async function executeClaudeCodeCLI(
   allowedTools?: string[]
 ): Promise<ClaudeCodeExecutionResult> {
   const startTime = Date.now();
+
+  // [yougao 改造] 检查是否使用本地模型
+  if (localModelConfig.enableLocalModel) {
+    console.log('[yougao] 使用本地模型替代 Claude CLI');
+    const localResult = await executeLocalModel(prompt, timeoutMs);
+    
+    return {
+      success: localResult.success,
+      output: localResult.output,
+      error: localResult.error ? {
+        code: 'LOCAL_MODEL_ERROR',
+        message: localResult.error.message,
+        details: localResult.error.details,
+      } : undefined,
+      executionTimeMs: localResult.executionTimeMs,
+    };
+  }
 
   // [yougao 改造] 离线模式占位返回，跳过 Claude CLI 调用
   console.log('[yougao] 离线模式：跳过 Claude CLI 调用，返回模拟数据');

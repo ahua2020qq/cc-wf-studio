@@ -7,6 +7,8 @@
 
 import * as vscode from 'vscode';
 import { getCurrentLocale } from './i18n/i18n-service';
+// [yougao 改造] 离线模式配置
+import offlineConfig from '../config/offline.config';
 
 /**
  * Generate HTML content for the Webview
@@ -21,6 +23,13 @@ export function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.
 
   // Get current locale for i18n
   const locale = getCurrentLocale();
+
+  // [yougao 改造] 获取离线配置
+  const offlineModeConfig = {
+    isOffline: offlineConfig.isOffline,
+    disableCloudApi: offlineConfig.disableCloudApi,
+    localStoragePath: offlineConfig.localStoragePath,
+  };
 
   // Get URIs for webview resources
   const scriptUri = webview.asWebviewUri(
@@ -58,6 +67,8 @@ export function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.
     <div id="root"></div>
     <script nonce="${nonce}">
       window.initialLocale = "${locale}";
+      // [yougao 改造] 注入离线模式配置
+      window.offlineConfig = ${JSON.stringify(offlineModeConfig)};
     </script>
     <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>

@@ -20,6 +20,8 @@ import type {
 import { detectSensitiveData } from '../utils/sensitive-data-detector';
 import { handleSlackError, type SlackErrorInfo } from '../utils/slack-error-handler';
 import type { WorkflowMessageBlock } from '../utils/slack-message-builder';
+// [yougao 改造] 离线模式配置
+import offlineConfig from '../../config/offline.config';
 
 /**
  * Handle workflow sharing to Slack
@@ -38,6 +40,19 @@ export async function handleShareWorkflowToSlack(
   slackApiService: SlackApiService
 ): Promise<void> {
   const startTime = Date.now();
+
+  // [yougao 改造] 离线模式拦截云端功能
+  if (offlineConfig.disableCloudApi) {
+    log('WARN', '[yougao 离线模式] 云端功能已禁用: Slack 分享工作流');
+    const errorInfo: SlackErrorInfo = {
+      code: 'OFFLINE_MODE',
+      messageKey: 'slack.error.offlineMode',
+      recoverable: false,
+      suggestedActionKey: 'slack.error.action.switchToOnline',
+    };
+    sendShareFailed(webview, requestId, payload.workflowId, errorInfo);
+    return;
+  }
 
   log('INFO', 'Slack workflow sharing started', {
     requestId,
@@ -222,6 +237,20 @@ export async function handleListSlackWorkspaces(
   slackApiService: SlackApiService
 ): Promise<void> {
   try {
+    // [yougao 改造] 离线模式拦截云端功能
+    if (offlineConfig.disableCloudApi) {
+      log('WARN', '[yougao 离线模式] 云端功能已禁用: 列出 Slack 工作区');
+      // 返回空列表而不是错误，因为 UI 可能依赖此数据
+      webview.postMessage({
+        type: 'LIST_SLACK_WORKSPACES_SUCCESS',
+        requestId,
+        payload: {
+          workspaces: [],
+        },
+      });
+      return;
+    }
+
     log('INFO', 'Listing Slack workspaces', { requestId });
 
     const workspaces = await slackApiService.getWorkspaces();
@@ -283,6 +312,20 @@ export async function handleGetSlackChannels(
   slackApiService: SlackApiService
 ): Promise<void> {
   try {
+    // [yougao 改造] 离线模式拦截云端功能
+    if (offlineConfig.disableCloudApi) {
+      log('WARN', '[yougao 离线模式] 云端功能已禁用: 获取 Slack 频道');
+      // 返回空列表而不是错误，因为 UI 可能依赖此数据
+      webview.postMessage({
+        type: 'GET_SLACK_CHANNELS_SUCCESS',
+        requestId,
+        payload: {
+          channels: [],
+        },
+      });
+      return;
+    }
+
     log('INFO', 'Getting Slack channels', {
       requestId,
       workspaceId: payload.workspaceId,

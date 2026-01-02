@@ -9,6 +9,16 @@
 
 import type { ExtensionMessage, Workflow } from '@shared/types/messages';
 import { vscode } from '../main';
+// [yougao 改造] 离线模式配置
+declare global {
+  interface Window {
+    offlineConfig?: {
+      isOffline: boolean;
+      disableCloudApi: boolean;
+      localStoragePath: string;
+    };
+  }
+}
 
 /**
  * Custom error class for Slack errors with i18n support
@@ -130,6 +140,12 @@ export interface SearchResult {
  * @returns Promise that resolves with workspace connection info
  */
 export function connectToSlack(): Promise<{ workspaceName: string }> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 连接 Slack');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法连接 Slack'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -175,6 +191,12 @@ export function connectToSlack(): Promise<{ workspaceName: string }> {
  * @returns Promise that resolves with workspace connection info
  */
 export function reconnectToSlack(): Promise<{ workspaceName: string }> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 重新连接 Slack');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法重新连接 Slack'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -219,6 +241,12 @@ export function reconnectToSlack(): Promise<{ workspaceName: string }> {
  * @returns Promise that resolves when disconnected
  */
 export function disconnectFromSlack(): Promise<void> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 断开 Slack 连接');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法断开 Slack 连接'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -266,6 +294,12 @@ export function connectSlackManual(
   botToken: string,
   userToken: string
 ): Promise<{ workspaceId: string; workspaceName: string }> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 手动连接 Slack');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法手动连接 Slack'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -312,6 +346,12 @@ export function connectSlackManual(
  * @returns Promise that resolves with workspace list
  */
 export function listSlackWorkspaces(): Promise<SlackWorkspace[]> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 列出 Slack 工作区');
+    return Promise.resolve([]); // 返回空列表而不是错误
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -357,6 +397,12 @@ export function getSlackChannels(
   includePrivate = true,
   onlyMember = true
 ): Promise<SlackChannel[]> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 获取 Slack 频道');
+    return Promise.resolve([]); // 返回空列表而不是错误
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -407,6 +453,12 @@ export function shareWorkflowToSlack(options: ShareWorkflowOptions): Promise<{
   sensitiveDataWarning?: SensitiveDataFinding[];
   permalink?: string;
 }> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 分享工作流到 Slack');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法分享工作流到 Slack'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -465,6 +517,12 @@ export function shareWorkflowToSlack(options: ShareWorkflowOptions): Promise<{
 export function importWorkflowFromSlack(
   options: ImportWorkflowOptions
 ): Promise<{ filePath: string }> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 从 Slack 导入工作流');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法从 Slack 导入工作流'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -521,6 +579,12 @@ export function importWorkflowFromSlack(
  * @returns Promise that resolves with search results
  */
 export function searchSlackWorkflows(options: SearchWorkflowOptions): Promise<SearchResult[]> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 搜索 Slack 工作流');
+    return Promise.resolve([]); // 返回空列表而不是错误
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -573,6 +637,12 @@ export type OAuthProgressCallback = (
 export function connectSlackOAuth(
   onProgress?: OAuthProgressCallback
 ): Promise<{ workspaceId: string; workspaceName: string }> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: OAuth 连接 Slack');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法通过 OAuth 连接 Slack'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -646,6 +716,12 @@ export function cancelSlackOAuth(): void {
  * @returns Promise that resolves with redirect URI
  */
 export function getOAuthRedirectUri(): Promise<{ redirectUri: string }> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 获取 OAuth 重定向 URI');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法获取 OAuth 重定向 URI'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = `req-${Date.now()}-${Math.random()}`;
 
@@ -751,10 +827,10 @@ export function setLastSharedChannel(channelId: string): void {
  */
 export class AIGenerationError extends Error {
   /** Error code for programmatic handling */
-  errorCode: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'CANCELLED' | 'UNKNOWN_ERROR';
+  errorCode: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'CANCELLED' | 'UNKNOWN_ERROR' | 'LOCAL_MODEL_ERROR';
 
   constructor(
-    errorCode: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'CANCELLED' | 'UNKNOWN_ERROR',
+    errorCode: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'CANCELLED' | 'UNKNOWN_ERROR' | 'LOCAL_MODEL_ERROR',
     message: string
   ) {
     super(message);
@@ -781,6 +857,12 @@ export function generateSlackDescription(
   timeoutMs = 30000,
   externalRequestId?: string
 ): Promise<string> {
+  // [yougao 改造] 离线模式拦截云端功能
+  if (window.offlineConfig?.disableCloudApi) {
+    console.warn('[yougao 离线模式] 云端功能已禁用: 生成 Slack 描述');
+    return Promise.reject(new Error('[离线模式] 已禁用云端接口，无法生成 Slack 描述'));
+  }
+
   return new Promise((resolve, reject) => {
     const requestId = externalRequestId || `req-${Date.now()}-${Math.random()}`;
 

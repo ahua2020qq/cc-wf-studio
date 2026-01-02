@@ -7,7 +7,7 @@
  * Based on specs/001-slack-workflow-sharing/contracts/extension-host-api-contracts.md
  */
 
-import type { Workflow } from '../../shared/types/workflow';
+import type { Workflow } from '../../shared/types/workflow-definition';
 
 /**
  * Validation result
@@ -57,7 +57,7 @@ export function validateWorkflowFile(content: string): ValidationResult {
   const workflow = parsedData as Record<string, unknown>;
 
   // Step 3: Required field validation
-  const requiredFields: Array<keyof Workflow> = ['id', 'name', 'version', 'nodes', 'connections'];
+  const requiredFields = ['id', 'name', 'version', 'nodes', 'connections'] as const;
 
   for (const field of requiredFields) {
     if (!(field in workflow)) {
@@ -96,6 +96,6 @@ export function validateWorkflowFile(content: string): ValidationResult {
 
   return {
     valid: true,
-    workflow: workflow as Workflow,
+    workflow: workflow as unknown as Workflow,
   };
 }

@@ -15,6 +15,8 @@ import { log } from '../extension';
 import type { SlackApiService } from '../services/slack-api-service';
 import { handleSlackError } from '../utils/slack-error-handler';
 import type { SlackTokenManager } from '../utils/slack-token-manager';
+// [yougao 改造] 离线模式配置
+import offlineConfig from '../../config/offline.config';
 
 /**
  * Handle manual Slack connection command
@@ -35,6 +37,15 @@ export async function handleConnectSlackManual(
   userToken?: string
 ): Promise<{ workspaceId: string; workspaceName: string } | undefined> {
   try {
+    // [yougao 改造] 离线模式拦截云端功能
+    if (offlineConfig.disableCloudApi) {
+      log('WARN', '[yougao 离线模式] 云端功能已禁用: Slack 手动连接');
+      await vscode.window.showWarningMessage(
+        '[离线模式] 已禁用云端接口，无法连接 Slack。请切换到在线模式后再试。'
+      );
+      return undefined;
+    }
+
     log('INFO', 'Manual Slack connection started');
 
     // Step 1: Get User Token (from parameter or Input Box)
@@ -144,5 +155,8 @@ export async function handleConnectSlackManual(
       `Failed to connect to Slack. Please check your token and try again.`,
       'OK'
     );
+
+    // Return undefined to indicate failure
+    return undefined;
   }
 }

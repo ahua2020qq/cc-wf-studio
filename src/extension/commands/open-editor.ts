@@ -736,21 +736,36 @@ export function registerOpenEditorCommand(
                 // Create new OAuth service for this flow
                 activeOAuthService = createOAuthService();
 
+                // Store initiation promise for later use
+                let initiationPromise: Promise<{ sessionId: string; authorizationUrl: string }> | null = null;
+
                 const oauthResult = await handleConnectSlackOAuth(
                   slackTokenManager,
                   slackApiService,
                   activeOAuthService,
-                  (status) => {
+                  async (status) => {
                     // Send progress updates to webview
                     if (status === 'initiated') {
-                      const initiation = activeOAuthService?.initiateOAuthFlow();
-                      if (initiation) {
+                      try {
+                        initiationPromise = activeOAuthService?.initiateOAuthFlow() || null;
+                        if (initiationPromise) {
+                          const initiation = await initiationPromise;
+                          webview.postMessage({
+                            type: 'SLACK_OAUTH_INITIATED',
+                            requestId: message.requestId,
+                            payload: {
+                              sessionId: initiation.sessionId,
+                              authorizationUrl: initiation.authorizationUrl,
+                            },
+                          });
+                        }
+                      } catch (error) {
+                        // If initiation fails, send error message
                         webview.postMessage({
-                          type: 'SLACK_OAUTH_INITIATED',
+                          type: 'SLACK_OAUTH_FAILED',
                           requestId: message.requestId,
                           payload: {
-                            sessionId: initiation.sessionId,
-                            authorizationUrl: initiation.authorizationUrl,
+                            message: error instanceof Error ? error.message : 'OAuth initiation failed',
                           },
                         });
                       }

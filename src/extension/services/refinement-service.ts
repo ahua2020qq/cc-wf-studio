@@ -39,7 +39,7 @@ export interface RefinementResult {
   clarificationMessage?: string;
   aiMessage?: string; // AI's response message for display in chat UI
   error?: {
-    code: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'VALIDATION_ERROR' | 'UNKNOWN_ERROR';
+    code: 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'VALIDATION_ERROR' | 'ITERATION_LIMIT_REACHED' | 'CANCELLED' | 'PROHIBITED_NODE_TYPE' | 'UNKNOWN_ERROR' | 'LOCAL_MODEL_ERROR';
     message: string;
     details?: string;
   };
@@ -388,7 +388,11 @@ export async function refineWorkflow(
 
       return {
         success: false,
-        error: cliResult.error ?? {
+        error: cliResult.error ? {
+          code: cliResult.error.code as 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'VALIDATION_ERROR' | 'ITERATION_LIMIT_REACHED' | 'CANCELLED' | 'PROHIBITED_NODE_TYPE' | 'UNKNOWN_ERROR' | 'LOCAL_MODEL_ERROR',
+          message: cliResult.error.message,
+          details: cliResult.error.details,
+        } : {
           code: 'UNKNOWN_ERROR',
           message: 'Unknown error occurred during CLI execution',
         },
@@ -772,8 +776,11 @@ export interface SubAgentFlowRefinementResult {
       | 'TIMEOUT'
       | 'PARSE_ERROR'
       | 'VALIDATION_ERROR'
+      | 'ITERATION_LIMIT_REACHED'
+      | 'CANCELLED'
       | 'PROHIBITED_NODE_TYPE'
-      | 'UNKNOWN_ERROR';
+      | 'UNKNOWN_ERROR'
+      | 'LOCAL_MODEL_ERROR';
     message: string;
     details?: string;
   };
@@ -1121,7 +1128,11 @@ export async function refineSubAgentFlow(
 
       return {
         success: false,
-        error: cliResult.error ?? {
+        error: cliResult.error ? {
+          code: cliResult.error.code as 'COMMAND_NOT_FOUND' | 'TIMEOUT' | 'PARSE_ERROR' | 'VALIDATION_ERROR' | 'ITERATION_LIMIT_REACHED' | 'CANCELLED' | 'PROHIBITED_NODE_TYPE' | 'UNKNOWN_ERROR' | 'LOCAL_MODEL_ERROR',
+          message: cliResult.error.message,
+          details: cliResult.error.details,
+        } : {
           code: 'UNKNOWN_ERROR',
           message: 'Unknown error occurred during CLI execution',
         },

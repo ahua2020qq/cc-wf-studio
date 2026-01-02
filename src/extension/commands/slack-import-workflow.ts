@@ -20,6 +20,8 @@ import type {
 import { migrateWorkflow } from '../utils/migrate-workflow';
 import { handleSlackError, type SlackErrorInfo } from '../utils/slack-error-handler';
 import { validateWorkflowFile } from '../utils/workflow-validator';
+// [yougao 改造] 离线模式配置
+import offlineConfig from '../../config/offline.config';
 
 /**
  * Handle workflow import from Slack
@@ -38,6 +40,26 @@ export async function handleImportWorkflowFromSlack(
   slackApiService: SlackApiService
 ): Promise<void> {
   const startTime = Date.now();
+
+  // [yougao 改造] 离线模式拦截云端功能
+  if (offlineConfig.disableCloudApi) {
+    log('WARN', '[yougao 离线模式] 云端功能已禁用: Slack 导入工作流');
+    const errorInfo: SlackErrorInfo = {
+      code: 'OFFLINE_MODE',
+      messageKey: 'slack.error.offlineMode',
+      recoverable: false,
+      suggestedActionKey: 'slack.error.action.switchToOnline',
+    };
+    sendImportFailed(
+      webview,
+      requestId,
+      payload.workflowId,
+      errorInfo,
+      payload.workspaceId,
+      payload.workspaceName
+    );
+    return;
+  }
 
   log('INFO', 'Slack workflow import started', {
     requestId,

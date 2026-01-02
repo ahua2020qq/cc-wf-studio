@@ -10,6 +10,7 @@ import * as vscode from 'vscode';
 import type { SaveSuccessPayload } from '../../shared/types/messages';
 import type { Workflow } from '../../shared/types/workflow-definition';
 import type { FileService } from '../services/file-service';
+import offlineConfig from '../../config/offline.config.js';
 
 /**
  * Save workflow to file
@@ -72,10 +73,16 @@ export async function saveWorkflow(
       payload,
     });
 
-    // Show success notification
-    vscode.window.showInformationMessage(`Workflow "${workflow.name}" saved successfully!`);
+    // Show success notification with offline mode info
+    if (offlineConfig.isOffline) {
+      vscode.window.showInformationMessage(
+        `[yougao 离线模式] 工作流 "${workflow.name}" 已保存到本地存储！`
+      );
+    } else {
+      vscode.window.showInformationMessage(`Workflow "${workflow.name}" saved successfully!`);
+    }
 
-    console.log(`Workflow saved: ${workflow.name}`);
+    console.log(`[yougao] Workflow saved: ${workflow.name} (offline: ${offlineConfig.isOffline})`);
   } catch (error) {
     // Send error message back to webview
     webview.postMessage({
