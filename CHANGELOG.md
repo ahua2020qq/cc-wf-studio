@@ -1,3 +1,10 @@
+## [3.11.2](https://github.com/breaking-brake/cc-wf-studio/compare/v3.11.1...v3.11.2) (2026-01-02)
+
+### Bug Fixes
+
+* treat non-JSON AI response as clarification message ([#352](https://github.com/breaking-brake/cc-wf-studio/issues/352)) ([9833905](https://github.com/breaking-brake/cc-wf-studio/commit/98339051a8a01387ac62cc0ee5c563e6855b32a9))
+* use claude CLI directly with npx fallback ([#353](https://github.com/breaking-brake/cc-wf-studio/issues/353)) ([83fb827](https://github.com/breaking-brake/cc-wf-studio/commit/83fb82756580de0122ddb4a8e40246a8a5065cb4))
+
 ## [3.11.1](https://github.com/breaking-brake/cc-wf-studio/compare/v3.11.0...v3.11.1) (2026-01-01)
 
 ### Bug Fixes
