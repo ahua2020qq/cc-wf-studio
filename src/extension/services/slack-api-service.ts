@@ -15,6 +15,8 @@ import {
   type WorkflowMessageBlock,
 } from '../utils/slack-message-builder';
 import type { SlackTokenManager } from '../utils/slack-token-manager';
+// [yougao 改造] 离线模式配置
+import offlineConfig from '../../config/offline.config.js';
 
 /**
  * Workflow file upload options
@@ -488,6 +490,12 @@ export class SlackApiService {
         (error as Error & { code: string; workspaceId: string }).code = 'USER_TOKEN_REQUIRED';
         (error as Error & { code: string; workspaceId: string }).workspaceId = workspaceId;
         throw error;
+      }
+
+      // [yougao 改造] 离线模式拦截云端请求
+      if (offlineConfig.disableCloudApi) {
+        console.warn('[yougao 离线模式] 云端请求已拦截: Slack 文件下载');
+        throw new Error('[离线模式] 已禁用云端接口，无法下载 Slack 文件');
       }
 
       // Fetch file content with Authorization header

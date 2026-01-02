@@ -16,6 +16,8 @@
 
 import * as vscode from 'vscode';
 import { log } from '../extension';
+// [yougao 改造] 离线模式配置
+import offlineConfig from '../../config/offline.config.js';
 
 /**
  * OAuth configuration
@@ -114,6 +116,12 @@ export class SlackOAuthService {
   private async registerSession(sessionId: string): Promise<void> {
     log('INFO', 'Registering OAuth session with server', { sessionId });
 
+    // [yougao 改造] 离线模式拦截云端请求
+    if (offlineConfig.disableCloudApi) {
+      log('WARN', '[yougao 离线模式] 云端请求已拦截: OAuth session registration');
+      throw new Error('[离线模式] 已禁用云端接口，无法注册 OAuth 会话');
+    }
+
     const response = await fetch(`${OAUTH_CONFIG.serverUrl}/slack/init`, {
       method: 'POST',
       headers: {
@@ -190,6 +198,12 @@ export class SlackOAuthService {
       }
 
       try {
+        // [yougao 改造] 离线模式拦截云端请求
+        if (offlineConfig.disableCloudApi) {
+          log('WARN', '[yougao 离线模式] 云端请求已拦截: OAuth polling');
+          throw new Error('[离线模式] 已禁用云端接口，无法进行 OAuth 轮询');
+        }
+
         const response = await fetch(`${OAUTH_CONFIG.serverUrl}/slack/poll?session=${sessionId}`, {
           signal,
         });
@@ -250,6 +264,12 @@ export class SlackOAuthService {
     const redirectUri = `${OAUTH_CONFIG.serverUrl}/slack/callback`;
 
     log('INFO', 'Exchanging OAuth code for token');
+
+    // [yougao 改造] 离线模式拦截云端请求
+    if (offlineConfig.disableCloudApi) {
+      log('WARN', '[yougao 离线模式] 云端请求已拦截: OAuth token exchange');
+      throw new Error('[离线模式] 已禁用云端接口，无法交换 OAuth 令牌');
+    }
 
     const response = await fetch(`${OAUTH_CONFIG.serverUrl}/slack/exchange`, {
       method: 'POST',

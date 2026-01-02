@@ -65,16 +65,10 @@ const activeProcesses = new Map<string, { subprocess: Subprocess; startTime: num
  * @returns true if claude is available, false if npx should be used
  */
 async function isClaudeCommandAvailable(): Promise<boolean> {
-  try {
-    const result = await spawn('claude', ['--version'], { timeout: 5000 });
-    log('INFO', 'Claude CLI check: using claude directly', {
-      version: result.stdout.trim().substring(0, 50),
-    });
-    return true;
-  } catch {
-    log('INFO', 'Claude CLI check: using npx fallback');
-    return false;
-  }
+  // [yougao 改造] 跳过 Claude CLI 校验，强制返回 true 以支持离线模式
+  console.log('[yougao] 跳过 Claude CLI 校验');
+  log('INFO', '[yougao] 跳过 Claude CLI 校验，强制返回 true');
+  return true;
 }
 
 /**
@@ -134,168 +128,36 @@ export async function executeClaudeCodeCLI(
 ): Promise<ClaudeCodeExecutionResult> {
   const startTime = Date.now();
 
-  const modelName = getCliModelName(model);
-
-  log('INFO', 'Starting Claude Code CLI execution', {
+  // [yougao 改造] 离线模式占位返回，跳过 Claude CLI 调用
+  console.log('[yougao] 离线模式：跳过 Claude CLI 调用，返回模拟数据');
+  log('INFO', '[yougao] 离线模式：跳过 Claude CLI 调用，返回模拟数据', {
     promptLength: prompt.length,
     timeoutMs,
     model,
-    modelName,
     allowedTools,
     cwd: workingDirectory ?? process.cwd(),
   });
 
-  try {
-    // Build CLI arguments
-    const args = ['-p', '-', '--model', modelName];
+  // 模拟处理时间
+  const executionTimeMs = Math.min(Date.now() - startTime, 1000);
 
-    // Add --tools and --allowed-tools flags if provided
-    // --tools: whitelist restriction (only these tools available)
-    // --allowed-tools: no permission prompt for these tools
-    if (allowedTools && allowedTools.length > 0) {
-      args.push('--tools', allowedTools.join(','));
-      args.push('--allowed-tools', allowedTools.join(','));
-    }
-
-    // Spawn Claude Code CLI process using nano-spawn (cross-platform compatible)
-    // Use stdin for prompt instead of -p argument to avoid Windows command line length limits
-    // Use claude directly if available, otherwise fall back to npx
-    const spawnCmd = await getClaudeSpawnCommand(args);
-    const subprocess = spawn(spawnCmd.command, spawnCmd.args, {
-      cwd: workingDirectory,
-      timeout: timeoutMs,
-      stdin: { string: prompt },
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-
-    // Register as active process if requestId is provided
-    if (requestId) {
-      activeProcesses.set(requestId, { subprocess, startTime });
-      log('INFO', `Registered active process for requestId: ${requestId}`);
-    }
-
-    // Wait for subprocess to complete
-    const result = await subprocess;
-
-    // Remove from active processes
-    if (requestId) {
-      activeProcesses.delete(requestId);
-      log('INFO', `Removed active process (success) for requestId: ${requestId}`);
-    }
-
-    const executionTimeMs = Date.now() - startTime;
-
-    // Success - return stdout
-    log('INFO', 'Claude Code CLI execution succeeded', {
-      executionTimeMs,
-      outputLength: result.stdout.length,
-    });
-
-    return {
-      success: true,
-      output: result.stdout.trim(),
-      executionTimeMs,
-    };
-  } catch (error) {
-    // Remove from active processes
-    if (requestId) {
-      activeProcesses.delete(requestId);
-      log('INFO', `Removed active process (error) for requestId: ${requestId}`);
-    }
-
-    const executionTimeMs = Date.now() - startTime;
-
-    // Log complete error object for debugging
-    log('ERROR', 'Claude Code CLI error caught', {
-      errorType: typeof error,
-      errorConstructor: error?.constructor?.name,
-      errorKeys: error && typeof error === 'object' ? Object.keys(error) : [],
-      error: error,
-      executionTimeMs,
-    });
-
-    // Handle SubprocessError from nano-spawn
-    if (isSubprocessError(error)) {
-      // Timeout error detection:
-      // - nano-spawn may set isTerminated=true and signalName='SIGTERM'
-      // - OR it may only set exitCode=143 (128 + 15 = SIGTERM)
-      const isTimeout =
-        (error.isTerminated && error.signalName === 'SIGTERM') || error.exitCode === 143;
-
-      if (isTimeout) {
-        log('WARN', 'Claude Code CLI execution timed out', {
-          timeoutMs,
-          executionTimeMs,
-          exitCode: error.exitCode,
-          isTerminated: error.isTerminated,
-          signalName: error.signalName,
-        });
-
-        return {
-          success: false,
-          error: {
-            code: 'TIMEOUT',
-            message: `AI generation timed out after ${Math.floor(timeoutMs / 1000)} seconds. Try simplifying your description.`,
-            details: `Timeout after ${timeoutMs}ms`,
-          },
-          executionTimeMs,
-        };
+  // 返回模拟成功结果
+  return {
+    success: true,
+    output: JSON.stringify({
+      status: 'success',
+      message: '[yougao 离线模式] 工作流已处理完成',
+      values: {
+        workflow: {
+          name: 'offline-workflow',
+          description: '离线模式生成的工作流',
+          nodes: [],
+          edges: []
+        }
       }
-
-      // Command not found (ENOENT)
-      if (error.code === 'ENOENT') {
-        log('ERROR', 'Claude Code CLI not found', {
-          errorCode: error.code,
-          errorMessage: error.message,
-          executionTimeMs,
-        });
-
-        return {
-          success: false,
-          error: {
-            code: 'COMMAND_NOT_FOUND',
-            message: 'Cannot connect to Claude Code - please ensure it is installed and running',
-            details: error.message,
-          },
-          executionTimeMs,
-        };
-      }
-
-      // Non-zero exit code
-      log('ERROR', 'Claude Code CLI execution failed', {
-        exitCode: error.exitCode,
-        executionTimeMs,
-        stderr: error.stderr?.substring(0, 200), // Log first 200 chars of stderr
-      });
-
-      return {
-        success: false,
-        error: {
-          code: 'UNKNOWN_ERROR',
-          message: 'Generation failed - please try again or rephrase your description',
-          details: `Exit code: ${error.exitCode ?? 'unknown'}, stderr: ${error.stderr ?? 'none'}`,
-        },
-        executionTimeMs,
-      };
-    }
-
-    // Unknown error type
-    log('ERROR', 'Unexpected error during Claude Code CLI execution', {
-      errorMessage: error instanceof Error ? error.message : String(error),
-      executionTimeMs,
-    });
-
-    return {
-      success: false,
-      error: {
-        code: 'UNKNOWN_ERROR',
-        message: 'An unexpected error occurred. Please try again.',
-        details: error instanceof Error ? error.message : String(error),
-      },
-      executionTimeMs,
-    };
-  }
+    }),
+    executionTimeMs,
+  };
 }
 
 /**
@@ -453,296 +315,48 @@ export async function executeClaudeCodeCLIStreaming(
   allowedTools?: string[]
 ): Promise<ClaudeCodeExecutionResult> {
   const startTime = Date.now();
-  let accumulated = '';
 
-  const modelName = getCliModelName(model);
-
-  log('INFO', 'Starting Claude Code CLI streaming execution', {
+  // [yougao 改造] 离线模式占位返回，跳过 Claude CLI 流式调用
+  console.log('[yougao] 离线模式：跳过 Claude CLI 流式调用，返回模拟数据');
+  log('INFO', '[yougao] 离线模式：跳过 Claude CLI 流式调用，返回模拟数据', {
     promptLength: prompt.length,
     timeoutMs,
     model,
-    modelName,
     allowedTools,
     cwd: workingDirectory ?? process.cwd(),
   });
 
-  try {
-    // Build CLI arguments
-    const args = ['-p', '-', '--output-format', 'stream-json', '--verbose', '--model', modelName];
-
-    // Add --tools and --allowed-tools flags if provided
-    // --tools: whitelist restriction (only these tools available)
-    // --allowed-tools: no permission prompt for these tools
-    if (allowedTools && allowedTools.length > 0) {
-      args.push('--tools', allowedTools.join(','));
-      args.push('--allowed-tools', allowedTools.join(','));
-    }
-
-    // Spawn Claude Code CLI with streaming output format
-    // Note: --verbose is required when using --output-format=stream-json with -p (print mode)
-    // Use claude directly if available, otherwise fall back to npx
-    const spawnCmd = await getClaudeSpawnCommand(args);
-    const subprocess = spawn(spawnCmd.command, spawnCmd.args, {
-      cwd: workingDirectory,
-      timeout: timeoutMs,
-      stdin: { string: prompt },
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-
-    // Register as active process if requestId is provided
-    if (requestId) {
-      activeProcesses.set(requestId, { subprocess, startTime });
-      log('INFO', `Registered active streaming process for requestId: ${requestId}`);
-    }
-
-    // Track explanatory text (non-JSON text from AI, for chat history)
-    let explanatoryText = '';
-    // Track current tool info for display (not preserved in history)
-    let currentToolInfo = '';
-
-    // Process streaming output using AsyncIterable
-    for await (const chunk of subprocess.stdout) {
-      // Split by newlines (JSON Lines format)
-      const lines = chunk.split('\n').filter((line: string) => line.trim());
-
-      for (const line of lines) {
-        try {
-          const parsed = JSON.parse(line);
-
-          // Log parsed streaming JSON for debugging
-          log('DEBUG', 'Streaming JSON line parsed', {
-            type: parsed.type,
-            hasMessage: !!parsed.message,
-            contentTypes: parsed.message?.content?.map((c: { type: string }) => c.type),
-            // Show content preview (truncated to 500 chars)
-            contentPreview:
-              parsed.type === 'assistant' && parsed.message?.content
-                ? parsed.message.content
-                    .filter((c: { type: string }) => c.type === 'text')
-                    .map((c: { text: string }) => c.text?.substring(0, 200))
-                    .join('')
-                : JSON.stringify(parsed).substring(0, 500),
-          });
-
-          // Extract content from assistant messages
-          if (parsed.type === 'assistant' && parsed.message?.content) {
-            for (const content of parsed.message.content) {
-              // Handle tool_use content - show tool name and relevant details (display only)
-              if (content.type === 'tool_use' && content.name) {
-                const toolName = content.name;
-                const input = content.input || {};
-                let description = '';
-
-                // Extract relevant info based on tool type
-                if (toolName === 'Read' && input.file_path) {
-                  description = input.file_path;
-                } else if (toolName === 'Bash' && input.command) {
-                  description = input.command.substring(0, 100);
-                } else if (toolName === 'Task' && input.description) {
-                  description = input.description;
-                } else if (toolName === 'Glob' && input.pattern) {
-                  description = input.pattern;
-                } else if (toolName === 'Grep' && input.pattern) {
-                  description = input.pattern;
-                } else if (toolName === 'Edit' && input.file_path) {
-                  description = input.file_path;
-                } else if (toolName === 'Write' && input.file_path) {
-                  description = input.file_path;
-                }
-
-                currentToolInfo = description ? `${toolName}: ${description}` : toolName;
-
-                // Build display text (explanatory + tool info)
-                const displayText = explanatoryText
-                  ? `${explanatoryText}\n\n🔧 ${currentToolInfo}`
-                  : `🔧 ${currentToolInfo}`;
-
-                onProgress(currentToolInfo, displayText, explanatoryText, 'tool_use');
-              }
-
-              // Handle text content
-              if (content.type === 'text' && content.text) {
-                // Add separator between text chunks for better readability
-                if (accumulated.length > 0 && !accumulated.endsWith('\n')) {
-                  accumulated += '\n\n';
-                }
-                accumulated += content.text;
-
-                // Check if accumulated text looks like JSON response
-                const trimmedAccumulated = accumulated.trim();
-                let strippedText = trimmedAccumulated;
-
-                // Strip markdown code block markers
-                if (strippedText.startsWith('```json')) {
-                  strippedText = strippedText.slice(7).trimStart();
-                } else if (strippedText.startsWith('```')) {
-                  strippedText = strippedText.slice(3).trimStart();
-                }
-                if (strippedText.endsWith('```')) {
-                  strippedText = strippedText.slice(0, -3).trimEnd();
-                }
-
-                // Try to parse as JSON - if successful, skip progress (let success handler show it)
-                try {
-                  const jsonResponse = JSON.parse(strippedText);
-                  log('DEBUG', 'JSON parse succeeded in text content handler', {
-                    hasStatus: !!jsonResponse.status,
-                    hasMessage: !!jsonResponse.message,
-                    hasValues: !!jsonResponse.values,
-                  });
-                  // JSON parsed successfully - don't call onProgress for JSON content
-                } catch {
-                  // JSON parsing failed - this is explanatory text or incomplete JSON
-                  // Only show if it doesn't look like JSON being built
-                  const looksLikeJsonStart =
-                    strippedText.startsWith('{') || trimmedAccumulated.startsWith('```');
-
-                  log('DEBUG', 'JSON parse failed in text content handler', {
-                    looksLikeJsonStart,
-                    strippedTextStartsWith: strippedText.substring(0, 20),
-                    trimmedAccumulatedStartsWith: trimmedAccumulated.substring(0, 20),
-                  });
-
-                  if (!looksLikeJsonStart) {
-                    // This is explanatory text from AI
-                    // Check if text contains ```json block and extract text before it
-                    const jsonBlockIndex = trimmedAccumulated.indexOf('```json');
-                    if (jsonBlockIndex !== -1) {
-                      explanatoryText = trimmedAccumulated.slice(0, jsonBlockIndex).trim();
-                      log('DEBUG', 'Extracted explanatory text before ```json', {
-                        explanatoryTextLength: explanatoryText.length,
-                        explanatoryTextPreview: explanatoryText.substring(0, 200),
-                      });
-                    } else {
-                      explanatoryText = trimmedAccumulated;
-                    }
-
-                    // Clear tool info when new text comes (text replaces tool display)
-                    currentToolInfo = '';
-
-                    // Display text is same as explanatory text when no tool is active
-                    onProgress(content.text, explanatoryText, explanatoryText, 'text');
-                  }
-                }
-              }
-            }
-          }
-        } catch {
-          // Ignore JSON parse errors (may be partial chunks)
-          log('DEBUG', 'Skipping non-JSON line in streaming output', {
-            lineLength: line.length,
-          });
-        }
+  // 模拟流式输出
+  const mockOutput = JSON.stringify({
+    status: 'success',
+    message: '[yougao 离线模式] 工作流已处理完成',
+    values: {
+      workflow: {
+        name: 'offline-workflow',
+        description: '离线模式生成的工作流',
+        nodes: [],
+        edges: []
       }
     }
+  });
 
-    // Wait for subprocess to complete
-    const result = await subprocess;
+  // 模拟流式进度回调
+  setTimeout(() => {
+    onProgress('处理中...', '离线模式处理中...', '离线模式处理中...', 'text');
+  }, 100);
 
-    // Remove from active processes
-    if (requestId) {
-      activeProcesses.delete(requestId);
-      log('INFO', `Removed active streaming process (success) for requestId: ${requestId}`);
-    }
+  setTimeout(() => {
+    onProgress('完成', mockOutput, mockOutput, 'text');
+  }, 500);
 
-    const executionTimeMs = Date.now() - startTime;
+  const executionTimeMs = Math.min(Date.now() - startTime, 600);
 
-    log('INFO', 'Claude Code CLI streaming execution succeeded', {
-      executionTimeMs,
-      accumulatedLength: accumulated.length,
-      rawOutputLength: result.stdout.length,
-    });
-
-    return {
-      success: true,
-      output: accumulated || result.stdout.trim(),
-      executionTimeMs,
-    };
-  } catch (error) {
-    // Remove from active processes
-    if (requestId) {
-      activeProcesses.delete(requestId);
-      log('INFO', `Removed active streaming process (error) for requestId: ${requestId}`);
-    }
-
-    const executionTimeMs = Date.now() - startTime;
-
-    log('ERROR', 'Claude Code CLI streaming error caught', {
-      errorType: typeof error,
-      errorConstructor: error?.constructor?.name,
-      executionTimeMs,
-      accumulatedLength: accumulated.length,
-      // Add detailed error info for debugging
-      exitCode: isSubprocessError(error) ? error.exitCode : undefined,
-      stderr: isSubprocessError(error) ? error.stderr?.substring(0, 500) : undefined,
-      stdout: isSubprocessError(error) ? error.stdout?.substring(0, 500) : undefined,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
-
-    // Handle SubprocessError from nano-spawn
-    if (isSubprocessError(error)) {
-      const isTimeout =
-        (error.isTerminated && error.signalName === 'SIGTERM') || error.exitCode === 143;
-
-      if (isTimeout) {
-        log('WARN', 'Claude Code CLI streaming execution timed out', {
-          timeoutMs,
-          executionTimeMs,
-          exitCode: error.exitCode,
-          accumulatedLength: accumulated.length,
-        });
-
-        return {
-          success: false,
-          output: accumulated, // Return accumulated content even on timeout
-          error: {
-            code: 'TIMEOUT',
-            message: `AI generation timed out after ${Math.floor(timeoutMs / 1000)} seconds. Try simplifying your description.`,
-            details: `Timeout after ${timeoutMs}ms`,
-          },
-          executionTimeMs,
-        };
-      }
-
-      // Command not found (ENOENT)
-      if (error.code === 'ENOENT') {
-        return {
-          success: false,
-          error: {
-            code: 'COMMAND_NOT_FOUND',
-            message: 'Cannot connect to Claude Code - please ensure it is installed and running',
-            details: error.message,
-          },
-          executionTimeMs,
-        };
-      }
-
-      // Non-zero exit code
-      return {
-        success: false,
-        output: accumulated, // Return accumulated content even on error
-        error: {
-          code: 'UNKNOWN_ERROR',
-          message: 'Generation failed - please try again or rephrase your description',
-          details: `Exit code: ${error.exitCode ?? 'unknown'}, stderr: ${error.stderr ?? 'none'}`,
-        },
-        executionTimeMs,
-      };
-    }
-
-    // Unknown error type
-    return {
-      success: false,
-      output: accumulated,
-      error: {
-        code: 'UNKNOWN_ERROR',
-        message: 'An unexpected error occurred. Please try again.',
-        details: error instanceof Error ? error.message : String(error),
-      },
-      executionTimeMs,
-    };
-  }
+  // 返回模拟成功结果
+  return {
+    success: true,
+    output: mockOutput,
+    executionTimeMs,
+  };
 }
 
 /**
