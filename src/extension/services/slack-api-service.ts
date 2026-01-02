@@ -16,7 +16,7 @@ import {
 } from '../utils/slack-message-builder';
 import type { SlackTokenManager } from '../utils/slack-token-manager';
 // [yougao 改造] 离线模式配置
-import offlineConfig from '../../config/offline.config.js';
+import offlineConfig from '../../config/offline.config';
 
 /**
  * Workflow file upload options
@@ -230,7 +230,7 @@ export class SlackApiService {
       return channels;
     } catch (error) {
       const errorInfo = handleSlackError(error);
-      throw new Error(errorInfo.message);
+      throw new Error(errorInfo.messageKey);
     }
   }
 
@@ -246,14 +246,22 @@ export class SlackApiService {
     const client = await this.ensureUserClient(options.workspaceId);
 
     // Upload file using files.uploadV2
-    const response = await client.files.uploadV2({
+    const uploadParams: any = {
       channel_id: options.channelId,
       file: Buffer.from(options.content, 'utf-8'),
       filename: options.filename,
       title: options.title,
-      initial_comment: options.initialComment,
-      thread_ts: options.threadTs,
-    });
+    };
+    
+    if (options.initialComment) {
+      uploadParams.initial_comment = options.initialComment;
+    }
+    
+    if (options.threadTs) {
+      uploadParams.thread_ts = options.threadTs;
+    }
+    
+    const response = await client.files.uploadV2(uploadParams);
 
     if (!response.ok) {
       throw new Error('ファイルのアップロードに失敗しました');
@@ -388,7 +396,7 @@ export class SlackApiService {
       return results;
     } catch (error) {
       const errorInfo = handleSlackError(error);
-      throw new Error(errorInfo.message);
+      throw new Error(errorInfo.messageKey);
     }
   }
 
@@ -524,7 +532,7 @@ export class SlackApiService {
         throw error;
       }
       const errorInfo = handleSlackError(error);
-      throw new Error(errorInfo.message);
+      throw new Error(errorInfo.messageKey);
     }
   }
 }

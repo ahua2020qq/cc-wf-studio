@@ -11,7 +11,7 @@
  * See: Issue #79 - Windows environment compatibility
  */
 
-import nanoSpawn from 'nano-spawn';
+// import nanoSpawn from 'nano-spawn'; // [yougao 改造] 离线模式下不再需要 nano-spawn
 import type { McpServerReference, McpToolReference } from '../../shared/types/mcp-node';
 import { log } from '../extension';
 import { getCachedTools, setCachedTools } from './mcp-cache-service';
@@ -19,33 +19,33 @@ import { getCachedTools, setCachedTools } from './mcp-cache-service';
 /**
  * nano-spawn type definitions (manually defined for compatibility)
  */
-interface SubprocessError extends Error {
-  stdout: string;
-  stderr: string;
-  output: string;
-  command: string;
-  durationMs: number;
-  exitCode?: number;
-  signalName?: string;
-  isTerminated?: boolean;
-  code?: string;
-}
+// interface SubprocessError extends Error {
+//   stdout: string;
+//   stderr: string;
+//   output: string;
+//   command: string;
+//   durationMs: number;
+//   exitCode?: number;
+//   signalName?: string;
+//   isTerminated?: boolean;
+//   code?: string;
+// }
 
-interface Result {
-  stdout: string;
-  stderr: string;
-  output: string;
-  command: string;
-  durationMs: number;
-}
+// interface Result {
+//   stdout: string;
+//   stderr: string;
+//   output: string;
+//   command: string;
+//   durationMs: number;
+// }
 
-const spawn =
-  nanoSpawn.default ||
-  (nanoSpawn as (
-    file: string,
-    args?: readonly string[],
-    options?: Record<string, unknown>
-  ) => Promise<Result>);
+// const spawn =
+//   nanoSpawn.default ||
+//   (nanoSpawn as (
+//     file: string,
+//     args?: readonly string[],
+//     options?: Record<string, unknown>
+//   ) => Promise<Result>);
 
 /**
  * Error codes for MCP CLI operations
@@ -92,15 +92,15 @@ const LIST_SERVERS_TIMEOUT_MS = 30000;
  * @param error - The error to check
  * @returns True if error is a SubprocessError
  */
-function isSubprocessError(error: unknown): error is SubprocessError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'exitCode' in error &&
-    'stderr' in error &&
-    'stdout' in error
-  );
-}
+// function isSubprocessError(error: unknown): error is SubprocessError {
+//   return (
+//     typeof error === 'object' &&
+//     error !== null &&
+//     'exitCode' in error &&
+//     'stderr' in error &&
+//     'stdout' in error
+//   );
+// }
 
 /**
  * Execute a Claude Code MCP CLI command
@@ -117,117 +117,60 @@ async function executeClaudeMcpCommand(
 ): Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number | null }> {
   const startTime = Date.now();
 
-  log('INFO', 'Executing claude mcp command', {
+  // [yougao 改造] 离线模式占位返回，跳过 Claude CLI 调用
+  console.log('[yougao] 离线模式：跳过 MCP CLI 调用，返回模拟数据');
+  log('INFO', '[yougao] 离线模式：跳过 MCP CLI 调用，返回模拟数据', {
     args,
     timeoutMs,
     cwd,
   });
 
-  try {
-    // Spawn 'claude' CLI process using nano-spawn (cross-platform compatible)
-    // Use npx to ensure cross-platform compatibility (Windows PATH issues with global npm installs)
-    const result = await spawn('npx', ['claude', ...args], {
-      cwd,
-      timeout: timeoutMs,
-      stdin: 'ignore',
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
+  // 模拟处理时间（变量未使用，仅用于计算）
+  const executionTimeMs = Math.min(Date.now() - startTime, 1000);
+  // 忽略未使用警告
+  void executionTimeMs;
 
-    const executionTimeMs = Date.now() - startTime;
+  // 根据命令类型返回不同的模拟数据
+  if (args[0] === 'mcp' && args[1] === 'list') {
+    // 模拟 MCP 服务器列表
+    const mockOutput = `Checking MCP server health...
 
-    log('INFO', 'MCP CLI command completed', {
-      args,
-      exitCode: 0,
-      executionTimeMs,
-      stdoutLength: result.stdout.length,
-      stderrLength: result.stderr.length,
-    });
-
+local-tools: npx mcp-local /path/to/tools - ✓ Connected
+aws-knowledge-mcp: npx mcp-remote https://knowledge-mcp.global.api.aws - ✓ Connected
+`;
     return {
       success: true,
-      stdout: result.stdout,
-      stderr: result.stderr,
+      stdout: mockOutput,
+      stderr: '',
       exitCode: 0,
     };
-  } catch (error) {
-    const executionTimeMs = Date.now() - startTime;
+  } else if (args[0] === 'mcp' && args[1] === 'get' && args[2]) {
+    // 模拟 MCP 服务器详情
+    const serverId = args[2];
+    const mockOutput = `${serverId}:
+  Scope: User config (available in all your projects)
+  Status: ✓ Connected
+  Type: stdio
+  Command: npx
+  Args: mcp-local /path/to/tools
+  Environment:
 
-    // Log complete error object for debugging
-    log('ERROR', 'MCP CLI error caught', {
-      errorType: typeof error,
-      errorConstructor: error?.constructor?.name,
-      errorKeys: error && typeof error === 'object' ? Object.keys(error) : [],
-      error: error,
-      executionTimeMs,
-    });
-
-    // Handle SubprocessError from nano-spawn
-    if (isSubprocessError(error)) {
-      // Timeout error
-      if (error.isTerminated && error.signalName === 'SIGTERM') {
-        log('WARN', 'MCP CLI command timed out', {
-          args,
-          timeoutMs,
-          executionTimeMs,
-        });
-
-        return {
-          success: false,
-          stdout: '',
-          stderr: `Timeout after ${timeoutMs}ms`,
-          exitCode: null,
-        };
-      }
-
-      // Command not found (ENOENT)
-      if (error.code === 'ENOENT') {
-        log('ERROR', 'MCP CLI command error', {
-          args,
-          errorCode: error.code,
-          errorMessage: error.message,
-          executionTimeMs,
-        });
-
-        return {
-          success: false,
-          stdout: '',
-          stderr: error.message,
-          exitCode: null,
-        };
-      }
-
-      // Non-zero exit code
-      log('INFO', 'MCP CLI command completed with error', {
-        args,
-        exitCode: error.exitCode,
-        executionTimeMs,
-        stdoutLength: error.stdout?.length ?? 0,
-        stderrLength: error.stderr?.length ?? 0,
-      });
-
-      return {
-        success: false,
-        stdout: error.stdout,
-        stderr: error.stderr,
-        exitCode: error.exitCode ?? null,
-      };
-    }
-
-    // Unknown error type
-    log('ERROR', 'Unexpected error during MCP CLI command execution', {
-      args,
-      errorMessage: error instanceof Error ? error.message : String(error),
-      executionTimeMs,
-    });
-
+To remove this server, run: claude mcp remove "${serverId}" -s user`;
     return {
-      success: false,
-      stdout: '',
-      stderr: error instanceof Error ? error.message : String(error),
-      exitCode: null,
+      success: true,
+      stdout: mockOutput,
+      stderr: '',
+      exitCode: 0,
     };
   }
+
+  // 默认返回成功
+  return {
+    success: true,
+    stdout: '[yougao 离线模式] MCP 命令已处理',
+    stderr: '',
+    exitCode: 0,
+  };
 }
 
 /**

@@ -8,55 +8,55 @@
  * See: Issue #79 - Windows environment compatibility
  */
 
-import type { ChildProcess } from 'node:child_process';
-import nanoSpawn from 'nano-spawn';
+// import type { ChildProcess } from 'node:child_process'; // [yougao 改造] 离线模式下不再需要 ChildProcess
+// import nanoSpawn from 'nano-spawn'; // [yougao 改造] 离线模式下不再需要 nano-spawn
 import type { ClaudeModel } from '../../shared/types/messages';
 import { log } from '../extension';
 
 /**
  * nano-spawn type definitions (manually defined for compatibility)
  */
-interface SubprocessError extends Error {
-  stdout: string;
-  stderr: string;
-  output: string;
-  command: string;
-  durationMs: number;
-  exitCode?: number;
-  signalName?: string;
-  isTerminated?: boolean;
-  code?: string;
-}
+// interface SubprocessError extends Error {
+//   stdout: string;
+//   stderr: string;
+//   output: string;
+//   command: string;
+//   durationMs: number;
+//   exitCode?: number;
+//   signalName?: string;
+//   isTerminated?: boolean;
+//   code?: string;
+// }
 
-interface Result {
-  stdout: string;
-  stderr: string;
-  output: string;
-  command: string;
-  durationMs: number;
-}
+// interface Result {
+//   stdout: string;
+//   stderr: string;
+//   output: string;
+//   command: string;
+//   durationMs: number;
+// }
 
-interface Subprocess extends Promise<Result> {
-  // nano-spawn v2.0.0: nodeChildProcess is a Promise that resolves to ChildProcess
-  // (spawnSubprocess is an async function)
-  nodeChildProcess: Promise<ChildProcess>;
-  stdout: AsyncIterable<string>;
-  stderr: AsyncIterable<string>;
-}
+// interface Subprocess extends Promise<Result> {
+//   // nano-spawn v2.0.0: nodeChildProcess is a Promise that resolves to ChildProcess
+//   // (spawnSubprocess is an async function)
+//   nodeChildProcess: Promise<ChildProcess>;
+//   stdout: AsyncIterable<string>;
+//   stderr: AsyncIterable<string>;
+// }
 
-const spawn =
-  nanoSpawn.default ||
-  (nanoSpawn as (
-    file: string,
-    args?: readonly string[],
-    options?: Record<string, unknown>
-  ) => Subprocess);
+// const spawn =
+//   nanoSpawn.default ||
+//   (nanoSpawn as (
+//     file: string,
+//     args?: readonly string[],
+//     options?: Record<string, unknown>
+//   ) => Subprocess);
 
 /**
  * Active generation processes
  * Key: requestId, Value: subprocess and start time
  */
-const activeProcesses = new Map<string, { subprocess: Subprocess; startTime: number }>();
+// const activeProcesses = new Map<string, { subprocess: Subprocess; startTime: number }>();
 
 /**
  * Check if claude command is directly available in PATH
@@ -64,12 +64,12 @@ const activeProcesses = new Map<string, { subprocess: Subprocess; startTime: num
  *
  * @returns true if claude is available, false if npx should be used
  */
-async function isClaudeCommandAvailable(): Promise<boolean> {
-  // [yougao 改造] 跳过 Claude CLI 校验，强制返回 true 以支持离线模式
-  console.log('[yougao] 跳过 Claude CLI 校验');
-  log('INFO', '[yougao] 跳过 Claude CLI 校验，强制返回 true');
-  return true;
-}
+// async function isClaudeCommandAvailable(): Promise<boolean> {
+//   // [yougao 改造] 跳过 Claude CLI 校验，强制返回 true 以支持离线模式
+//   console.log('[yougao] 跳过 Claude CLI 校验');
+//   log('INFO', '[yougao] 跳过 Claude CLI 校验，强制返回 true');
+//   return true;
+// }
 
 /**
  * Get the command and args for spawning Claude CLI
@@ -78,14 +78,14 @@ async function isClaudeCommandAvailable(): Promise<boolean> {
  * @param args - CLI arguments (without 'claude' command itself)
  * @returns command and args for spawn
  */
-async function getClaudeSpawnCommand(args: string[]): Promise<{ command: string; args: string[] }> {
-  const useDirectClaude = await isClaudeCommandAvailable();
+// async function getClaudeSpawnCommand(args: string[]): Promise<{ command: string; args: string[] }> {
+//   const useDirectClaude = await isClaudeCommandAvailable();
 
-  if (useDirectClaude) {
-    return { command: 'claude', args };
-  }
-  return { command: 'npx', args: ['claude', ...args] };
-}
+//   if (useDirectClaude) {
+//     return { command: 'claude', args };
+//   }
+//   return { command: 'npx', args: ['claude', ...args] };
+// }
 
 export interface ClaudeCodeExecutionResult {
   success: boolean;
@@ -102,10 +102,10 @@ export interface ClaudeCodeExecutionResult {
  * Map ClaudeModel type to Claude CLI model alias
  * See: https://code.claude.com/docs/en/model-config.md
  */
-function getCliModelName(model: ClaudeModel): string {
-  // Claude CLI accepts model aliases: 'sonnet', 'opus', 'haiku'
-  return model;
-}
+// function getCliModelName(model: ClaudeModel): string {
+//   // Claude CLI accepts model aliases: 'sonnet', 'opus', 'haiku'
+//   return model;
+// }
 
 /**
  * Execute Claude Code CLI with a prompt and return the output
@@ -121,7 +121,7 @@ function getCliModelName(model: ClaudeModel): string {
 export async function executeClaudeCodeCLI(
   prompt: string,
   timeoutMs = 60000,
-  requestId?: string,
+  _requestId?: string, // 重命名以表明未使用
   workingDirectory?: string,
   model: ClaudeModel = 'sonnet',
   allowedTools?: string[]
@@ -166,15 +166,15 @@ export async function executeClaudeCodeCLI(
  * @param error - The error to check
  * @returns True if error is a SubprocessError
  */
-function isSubprocessError(error: unknown): error is SubprocessError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'exitCode' in error &&
-    'stderr' in error &&
-    'stdout' in error
-  );
-}
+// function isSubprocessError(error: unknown): error is SubprocessError {
+//   return (
+//     typeof error === 'object' &&
+//     error !== null &&
+//     'exitCode' in error &&
+//     'stderr' in error &&
+//     'stdout' in error
+//   );
+// }
 
 /**
  * Parse JSON output from Claude Code CLI
@@ -238,43 +238,10 @@ export async function cancelGeneration(requestId: string): Promise<{
   cancelled: boolean;
   executionTimeMs?: number;
 }> {
-  const activeGen = activeProcesses.get(requestId);
-
-  if (!activeGen) {
-    log('WARN', `No active generation found for requestId: ${requestId}`);
-    return { cancelled: false };
-  }
-
-  const { subprocess, startTime } = activeGen;
-  const executionTimeMs = Date.now() - startTime;
-
-  // nano-spawn v2.0.0: nodeChildProcess is a Promise that resolves to ChildProcess
-  // We need to await it before calling kill()
-  const childProcess = await subprocess.nodeChildProcess;
-
-  log('INFO', `Cancelling generation for requestId: ${requestId}`, {
-    pid: childProcess.pid,
-    elapsedMs: executionTimeMs,
-  });
-
-  // Kill the process (cross-platform compatible)
-  // On Windows: kill() sends an unconditional termination
-  // On Unix: kill() sends SIGTERM (graceful termination)
-  childProcess.kill();
-
-  // Force kill after 500ms if process doesn't terminate
-  setTimeout(() => {
-    if (!childProcess.killed) {
-      // On Unix: this would be SIGKILL, but kill() without signal works on both platforms
-      childProcess.kill();
-      log('WARN', `Forcefully killed process for requestId: ${requestId}`);
-    }
-  }, 500);
-
-  // Remove from active processes map
-  activeProcesses.delete(requestId);
-
-  return { cancelled: true, executionTimeMs };
+  // [yougao 改造] 离线模式下无活动进程，直接返回 false
+  console.log('[yougao] 离线模式：无活动进程可取消');
+  log('WARN', `No active generation found for requestId: ${requestId} (离线模式)`);
+  return { cancelled: false };
 }
 
 /**
@@ -309,7 +276,7 @@ export async function executeClaudeCodeCLIStreaming(
   prompt: string,
   onProgress: StreamingProgressCallback,
   timeoutMs = 60000,
-  requestId?: string,
+  _requestId?: string, // 重命名以表明未使用
   workingDirectory?: string,
   model: ClaudeModel = 'sonnet',
   allowedTools?: string[]
@@ -369,41 +336,8 @@ export async function cancelRefinement(requestId: string): Promise<{
   cancelled: boolean;
   executionTimeMs?: number;
 }> {
-  const activeGen = activeProcesses.get(requestId);
-
-  if (!activeGen) {
-    log('WARN', `No active refinement found for requestId: ${requestId}`);
-    return { cancelled: false };
-  }
-
-  const { subprocess, startTime } = activeGen;
-  const executionTimeMs = Date.now() - startTime;
-
-  // nano-spawn v2.0.0: nodeChildProcess is a Promise that resolves to ChildProcess
-  // We need to await it before calling kill()
-  const childProcess = await subprocess.nodeChildProcess;
-
-  log('INFO', `Cancelling refinement for requestId: ${requestId}`, {
-    pid: childProcess.pid,
-    elapsedMs: executionTimeMs,
-  });
-
-  // Kill the process (cross-platform compatible)
-  // On Windows: kill() sends an unconditional termination
-  // On Unix: kill() sends SIGTERM (graceful termination)
-  childProcess.kill();
-
-  // Force kill after 500ms if process doesn't terminate
-  setTimeout(() => {
-    if (!childProcess.killed) {
-      // On Unix: this would be SIGKILL, but kill() without signal works on both platforms
-      childProcess.kill();
-      log('WARN', `Forcefully killed refinement process for requestId: ${requestId}`);
-    }
-  }, 500);
-
-  // Remove from active processes map
-  activeProcesses.delete(requestId);
-
-  return { cancelled: true, executionTimeMs };
+  // [yougao 改造] 离线模式下无活动进程，直接返回 false
+  console.log('[yougao] 离线模式：无活动进程可取消');
+  log('WARN', `No active refinement found for requestId: ${requestId} (离线模式)`);
+  return { cancelled: false };
 }

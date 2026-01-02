@@ -235,7 +235,7 @@ export class SlackTokenManager {
         workspaceId: workspaceData.workspaceId,
         workspaceName: workspaceData.workspaceName,
         teamId: workspaceData.teamId,
-        accessToken,
+        accessToken: accessToken || '', // 处理 undefined 情况
         userAccessToken: userAccessToken || undefined,
         tokenScope: workspaceData.tokenScope,
         userId: workspaceData.userId,

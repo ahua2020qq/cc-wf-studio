@@ -17,7 +17,7 @@
 import * as vscode from 'vscode';
 import { log } from '../extension';
 // [yougao 改造] 离线模式配置
-import offlineConfig from '../../config/offline.config.js';
+import offlineConfig from '../../config/offline.config';
 
 /**
  * OAuth configuration

@@ -70,8 +70,14 @@ export async function handleImportWorkflowFromSlack(
         webview,
         requestId,
         payload.workflowId,
-        'INVALID_WORKFLOW_FILE',
-        `Invalid workflow file: ${validationResult.errors?.join(', ')}`
+        {
+          code: 'INVALID_WORKFLOW_FILE',
+          messageKey: 'slack.error.invalidWorkflowFile',
+          recoverable: false,
+          suggestedActionKey: 'slack.error.action.checkFileFormat',
+        },
+        payload.workspaceId,
+        payload.workspaceName
       );
       return;
     }
@@ -98,8 +104,14 @@ export async function handleImportWorkflowFromSlack(
         webview,
         requestId,
         payload.workflowId,
-        'FILE_WRITE_ERROR',
-        'No workspace folder is open. Please open a folder or workspace first.'
+        {
+          code: 'FILE_WRITE_ERROR',
+          messageKey: 'slack.error.fileWriteError',
+          recoverable: true,
+          suggestedActionKey: 'slack.error.action.openWorkspace',
+        },
+        payload.workspaceId,
+        payload.workspaceName
       );
       return;
     }
